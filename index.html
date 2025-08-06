@@ -158,7 +158,7 @@
         document.getElementById('embedCurrentBtn').addEventListener('click', function() {
             const rssUrl = document.getElementById('rssUrl').value.trim();
             if (!rssUrl) return;
-            const embedCode = `<iframe src="/embed.html?feed=${encodeURIComponent(rssUrl)}" style="width:100%;min-width:320px;height:600px;border:none;"></iframe>`;
+            const embedCode = `<iframe src="https://feedit.madebydanny.uk/embed.html?feed=${encodeURIComponent(rssUrl)}" style="width:100%;min-width:320px;height:600px;border:none;"></iframe>`;
             navigator.clipboard.writeText(embedCode).then(() => {
                 const notif = document.getElementById('embedNotif');
                 notif.textContent = "Embed code copied!";
