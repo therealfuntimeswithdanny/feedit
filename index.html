@@ -6,12 +6,13 @@
     <title>Feedit</title>
     <meta name="description" content="Feedit is a modern, responsive RSS feed reader. Instantly preview, share, and embed the latest articles from your favorite sources.">
     <link rel="canonical" href="https://feedit.madebydanny.uk/">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="https://public-danielmorrisey-com.danielmorrisey.com/logo1.png" type="image/x-icon">
     <!-- Open Graph -->
     <meta property="og:title" content="Feedit - Modern RSS Feed Reader">
     <meta property="og:description" content="Preview, share, and embed the latest articles from your favorite RSS feeds.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://feedit.madebydanny.uk/">
+    <meta property="og:image" content="https://public-danielmorrisey-com.danielmorrisey.com/Screenshot%202025-08-06%20at%2010.30.14.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -34,7 +35,7 @@
         <div id="mainContainer" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
             <div id="headerContent">
                 <h1 class="text-3xl sm:text-4xl font-bold mb-2 text-center text-gray-800 dark:text-white">Feedit</h1>
-                <p class="text-center text-gray-600 dark:text-gray-300 mb-8">Enter an RSS feed URL or select a website from below to display the latest articles.</p>
+                <p class="text-center text-gray-600 dark:text-gray-300 mb-8">Enter an RSS feed URL or select a website from below to display the latest articles or try <a href="/deck.html">Deck View</a></p>
                 <!-- Input form for the RSS feed URL -->
                 <div class="flex flex-col sm:flex-row gap-3 mb-8">
                     <input type="url" id="rssUrl" class="flex-grow w-full px-4 py-2.5 text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="e.g., https://rss.nytimes.com/services/xml/rss/nyt/World.xml" aria-label="RSS Feed URL">
@@ -46,6 +47,9 @@
                 <div class="flex justify-center mb-4">
                     <button id="embedCurrentBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition mr-2">
                         Embed This Feed
+                    </button>
+                    <button id="refreshFeedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition mr-2">
+                        Refresh Feed
                     </button>
                     <span id="embedNotif" class="hidden px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-semibold shadow self-center"></span>
                 </div>
@@ -107,7 +111,7 @@
 
         // --- State Management ---
         const LAST_URL_KEY = 'lastRssUrl';
-        const ITEMS_PER_PAGE = 10; // Set a default value for items per page
+        const ITEMS_PER_PAGE = 15; // Set a default value for items per page
         let allFeedItems = [];
         let itemsDisplayed = 0;
         let currentLayout = 'card'; // Default layout
@@ -165,6 +169,11 @@
                 notif.classList.remove('hidden');
                 setTimeout(() => notif.classList.add('hidden'), 1500);
             });
+        });
+
+        // --- Refresh Feed Button Logic ---
+        document.getElementById('refreshFeedBtn').addEventListener('click', function() {
+            getRssFeed();
         });
 
         /**
