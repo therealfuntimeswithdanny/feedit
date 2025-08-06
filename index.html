@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a cleaner look */
+        #feed-list::-webkit-scrollbar, #article-content-view::-webkit-scrollbar {
+            width: 8px;
+        }
+        #feed-list::-webkit-scrollbar-track, #article-content-view::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        #feed-list::-webkit-scrollbar-thumb, #article-content-view::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        #feed-list::-webkit-scrollbar-thumb:hover, #article-content-view::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Style for the selected article */
+        .article-item.selected {
+            background-color: #e0f2fe; /* light-blue-100 */
+        }
+        /* Style for the active feed button */
+        .feed-btn.active-feed {
+            background-color: #0284c7; /* sky-600 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="app" class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 shadow-sm p-4 z-10">
+            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                <h1 class="text-2xl font-bold text-slate-900">RSS Reader</h1>
+                <div class="flex items-center gap-2 flex-wrap justify-center">
+                    <!-- Feed selection buttons will be injected here -->
+                    <div id="feed-buttons" class="flex items-center gap-2 flex-wrap"></div>
+                    <button id="view-saved-btn" class="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors">
+                        Saved Articles
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <!-- Feed List Column -->
+            <aside class="w-full md:w-1/3 lg:w-1/4 h-full bg-slate-100 border-r border-slate-200 flex flex-col">
+                <div class="p-4 border-b border-slate-200">
+                    <h2 id="feed-title" class="text-lg font-semibold truncate">Feed Articles</h2>
+                </div>
+                <div id="feed-list" class="flex-1 overflow-y-auto">
+                    <div id="loader" class="p-4 text-center text-slate-500 hidden">Loading feed...</div>
+                    <div id="error-message" class="p-4 text-center text-red-500 hidden"></div>
+                </div>
+            </aside>
+
+            <!-- Article Content Column -->
+            <section id="article-content-view" class="flex-1 h-full overflow-y-auto bg-white p-6 md:p-8 lg:p-10">
+                <div id="article-placeholder" class="text-center text-slate-400 h-full flex flex-col justify-center items-center">
+                    <svg class="w-16 h-16 mb-4 text-slate-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V6.375c0-.621.504-1.125 1.125-1.125H9.75" />
+                    </svg>
+                    <h3 class="text-xl font-medium">Select an article to read</h3>
+                    <p class="mt-1 text-sm">Use the buttons above to select a feed.</p>
+                </div>
+                <article id="article-content" class="prose lg:prose-xl max-w-none hidden">
+                    <!-- Selected article content will be displayed here -->
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const feedButtonsContainer = document.getElementById('feed-buttons');
+        const viewSavedBtn = document.getElementById('view-saved-btn');
+        const feedList = document.getElementById('feed-list');
+        const feedTitle = document.getElementById('feed-title');
+        const articleContentView = document.getElementById('article-content-view');
+        const articlePlaceholder = document.getElementById('article-placeholder');
+        const articleContent = document.getElementById('article-content');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+
+        // --- State and Data ---
+        let articles = []; // Holds the currently displayed list of articles
+        const feeds = [
+            { name: 'MacRumors', url: 'https://feeds.macrumors.com/MacRumors-All' },
+            { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml' },
+            { name: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
+            { name: 'Wired', url: 'https://www.wired.com/feed/rss' },
+            { name: 'Engadget', url: 'https://www.engadget.com/rss.xml' },
+            { name: 'Android Police', url: 'https://www.androidpolice.com/feed/' },
+            { name: '9to5Mac', url: 'https://9to5mac.com/feed/' },
+            { name: '9to5Google', url: 'https://9to5google.com/feed/' },
+            { name: "Tom's Hardware", url: 'https://www.tomshardware.com/feeds/all' },
+            { name: 'Digital Trends', url: 'https://www.digitaltrends.com/feed/' }
+        ];
+
+        /**
+         * Fetches and parses an RSS feed from a given URL.
+         * @param {string} rssUrl - The URL of the RSS feed to fetch.
+         */
+        const fetchAndParseRss = async (rssUrl) => {
+            if (!rssUrl) return;
+            
+            loader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            feedList.innerHTML = '';
+            feedTitle.textContent = 'Loading...';
+            articles = [];
+            resetArticleView();
+
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                const xmlString = data.contents;
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+                
+                if (xmlDoc.querySelector("parsererror")) {
+                    throw new Error('Failed to parse the RSS feed. The format might be invalid.');
+                }
+                
+                const channelTitle = xmlDoc.querySelector("channel > title")?.textContent || 'RSS Feed';
+                feedTitle.textContent = channelTitle;
+
+                const items = xmlDoc.querySelectorAll("item");
+                if (items.length === 0) {
+                    showError('No articles found in this feed.');
+                    return;
+                }
+                // Limit to 7 articles for speed
+                articles = Array.from(items).slice(0, 7).map(item => ({
+                    title: item.querySelector("title")?.textContent || 'No Title',
+                    link: item.querySelector("link")?.textContent || '#',
+                    pubDate: item.querySelector("pubDate")?.textContent ? new Date(item.querySelector("pubDate").textContent).toLocaleDateString() : 'No Date',
+                    description: item.querySelector("description")?.textContent || '',
+                    content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || ''
+                }));
+
+                renderArticleList(articles);
+
+            } catch (error) {
+                console.error("Error fetching or parsing RSS feed:", error);
+                showError(error.message || 'Could not fetch the feed.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
+        /**
+         * Renders a list of articles in the left sidebar.
+         * @param {Array} articleArray - The array of article objects to render.
+         */
+        const renderArticleList = (articleArray) => {
+            feedList.innerHTML = ''; // Clear previous list
+            if (articleArray.length === 0) {
+                feedList.innerHTML = '<p class="p-4 text-slate-500 text-center">No articles to display.</p>';
+                return;
+            }
+            articleArray.forEach((article, index) => {
+                const articleElement = document.createElement('div');
+                articleElement.className = 'article-item cursor-pointer p-4 border-b border-slate-200 hover:bg-slate-200 transition-colors duration-150';
+                articleElement.dataset.index = index;
+                articleElement.innerHTML = `
+                    <h3 class="font-semibold text-slate-800 mb-1">${article.title}</h3>
+                    <p class="text-sm text-slate-500">${article.pubDate}</p>
+                `;
+                articleElement.addEventListener('click', () => displayArticle(index));
+                feedList.appendChild(articleElement);
+            });
+        };
+
+        /**
+         * Displays the content of a selected article.
+         * @param {number} index - The index of the article in the global 'articles' array.
+         */
+        const displayArticle = (index) => {
+            const article = articles[index];
+            if (!article) return;
+
+            articlePlaceholder.classList.add('hidden');
+            articleContent.classList.remove('hidden');
+
+            const savedArticles = getSavedArticles();
+            const isSaved = savedArticles.some(saved => saved.link === article.link);
+
+            articleContent.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h1 class="text-2xl md:text-3xl font-bold !mb-0">${article.title}</h1>
+                    <button id="save-later-btn" class="ml-4 flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${isSaved ? 'bg-green-600 text-white' : 'bg-sky-600 hover:bg-sky-700 text-white'}" ${isSaved ? 'disabled' : ''}>
+                        ${isSaved ? 'Saved' : 'Save for Later'}
+                    </button>
+                </div>
+                <div class="text-sm text-slate-500 mb-6 border-b pb-4">
+                    <span>${article.pubDate}</span> &middot; 
+                    <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="text-sky-600 hover:underline">
+                        View Original
+                    </a>
+                </div>
+                <div>${article.content}</div>
+            `;
+            
+            if (!isSaved) {
+                document.getElementById('save-later-btn').addEventListener('click', () => saveArticleForLater(index));
+            }
+
+            document.querySelectorAll('.article-item').forEach(item => item.classList.remove('selected'));
+            document.querySelector(`.article-item[data-index='${index}']`)?.classList.add('selected');
+
+            articleContentView.scrollTop = 0;
+        };
+
+        /**
+         * Saves an article to localStorage.
+         * @param {number} index - The index of the article in the global 'articles' array.
+         */
+        const saveArticleForLater = (index) => {
+            const articleToSave = articles[index];
+            const savedArticles = getSavedArticles();
+            
+            // Avoid duplicates
+            if (!savedArticles.some(saved => saved.link === articleToSave.link)) {
+                savedArticles.push(articleToSave);
+                localStorage.setItem('savedRssArticles', JSON.stringify(savedArticles));
+            }
+
+            // Update button state
+            const saveBtn = document.getElementById('save-later-btn');
+            saveBtn.textContent = 'Saved';
+            saveBtn.disabled = true;
+            saveBtn.className = saveBtn.className.replace('bg-sky-600 hover:bg-sky-700', 'bg-green-600');
+        };
+
+        /**
+         * Retrieves saved articles from localStorage.
+         * @returns {Array} An array of saved article objects.
+         */
+        const getSavedArticles = () => {
+            return JSON.parse(localStorage.getItem('savedRssArticles')) || [];
+        };
+
+        /**
+         * Displays the list of saved articles.
+         */
+        const viewSavedArticles = () => {
+            feedTitle.textContent = 'Saved Articles';
+            articles = getSavedArticles();
+            renderArticleList(articles);
+            resetArticleView();
+            // De-select any active feed button
+            document.querySelectorAll('.feed-btn.active-feed').forEach(btn => btn.classList.remove('active-feed'));
+        };
+
+        /**
+         * Renders the feed selection buttons in the header.
+         */
+        const renderFeedButtons = () => {
+            feeds.forEach((feed, index) => {
+                const button = document.createElement('button');
+                button.className = 'feed-btn px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors';
+                button.textContent = feed.name;
+                button.addEventListener('click', (e) => {
+                    fetchAndParseRss(feed.url);
+                    document.querySelectorAll('.feed-btn.active-feed').forEach(btn => btn.classList.remove('active-feed'));
+                    e.currentTarget.classList.add('active-feed');
+                });
+                if (index === 0) {
+                    button.classList.add('active-feed'); // Set first button as active by default
+                }
+                feedButtonsContainer.appendChild(button);
+            });
+        };
+        
+        // --- Utility Functions ---
+        const showError = (message) => {
+            feedTitle.textContent = 'Error';
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            loader.classList.add('hidden');
+            feedList.innerHTML = '';
+        };
+
+        const resetArticleView = () => {
+            articlePlaceholder.classList.remove('hidden');
+            articleContent.classList.add('hidden');
+        };
+
+        // --- Initial Setup ---
+        window.addEventListener('load', () => {
+            renderFeedButtons();
+            viewSavedBtn.addEventListener('click', viewSavedArticles);
+            
+            // Fetch the first feed by default
+            if (feeds.length > 0) {
+                fetchAndParseRss(feeds[0].url);
+            }
+        });
+
+    </script>
+</body>
+</html>
