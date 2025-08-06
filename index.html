@@ -3,716 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced RSS Feed Reader</title>
+    <title>Feedit</title>
+    <meta name="description" content="Feedit is a modern, responsive RSS feed reader. Instantly preview, share, and embed the latest articles from your favorite sources.">
+    <link rel="canonical" href="https://feedit.madebydanny.uk/">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <!-- Open Graph -->
+    <meta property="og:title" content="Feedit - Modern RSS Feed Reader">
+    <meta property="og:description" content="Preview, share, and embed the latest articles from your favorite RSS feeds.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://feedit.madebydanny.uk/">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom scrollbar for a cleaner look */
-        #feed-list::-webkit-scrollbar, #article-content-view::-webkit-scrollbar {
-            width: 8px;
+        /* Simple animation for feed items appearing */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        #feed-list::-webkit-scrollbar-track, #article-content-view::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        #feed-list::-webkit-scrollbar-thumb, #article-content-view::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        #feed-list::-webkit-scrollbar-thumb:hover, #article-content-view::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        /* Style for the selected article */
-        .article-item.selected {
-            background-color: #e0f2fe; /* light-blue-100 */
-        }
-        /* Style for the active feed button */
-        .feed-btn.active-feed {
-            background-color: #0284c7; /* sky-600 */
-            color: white;
-        }
-        /* Style for the modal overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 90%;
-            width: 400px;
-        }
-        .prose img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
-        }
-        .prose iframe, .prose video {
-            max-width: 100%;
-            height: auto;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+        .feed-item {
+            animation: fadeIn 0.5s ease-out forwards;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
 
-    <div id="app" class="flex flex-col h-screen">
-        <header class="bg-white border-b border-slate-200 shadow-sm p-4 z-10">
-            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                <h1 class="text-2xl font-bold text-slate-900">RSS Reader</h1>
-                <div class="flex items-center gap-2 flex-wrap justify-center">
-                    <div id="feed-buttons" class="flex items-center gap-2 flex-wrap"></div>
-                    <button id="add-feed-btn" class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors">
-                        <i class="fas fa-plus mr-1"></i> Add Feed
-                    </button>
-                    <button id="view-latest-btn" class="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors">
-                        Latest 20
-                    </button>
-                    <button id="view-saved-btn" class="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors">
-                        Saved Articles
+    <div class="container mx-auto max-w-4xl px-4 py-8">
+        <div id="mainContainer" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
+            <div id="headerContent">
+                <h1 class="text-3xl sm:text-4xl font-bold mb-2 text-center text-gray-800 dark:text-white">Feedit</h1>
+                <p class="text-center text-gray-600 dark:text-gray-300 mb-8">Enter an RSS feed URL or select a website from below to display the latest articles.</p>
+                <!-- Input form for the RSS feed URL -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                    <input type="url" id="rssUrl" class="flex-grow w-full px-4 py-2.5 text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="e.g., https://rss.nytimes.com/services/xml/rss/nyt/World.xml" aria-label="RSS Feed URL">
+                    <button id="fetchFeed" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Fetch Feed
                     </button>
                 </div>
-            </div>
-            <div class="max-w-7xl mx-auto mt-4">
-                <input type="text" id="search-input" placeholder="Search articles..." class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all">
-            </div>
-        </header>
-
-        <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
-            <aside class="w-full md:w-1/3 lg:w-1/4 h-full bg-slate-100 border-r border-slate-200 flex flex-col">
-                <div class="p-4 border-b border-slate-200">
-                    <h2 id="feed-title" class="text-lg font-semibold truncate">Feed Articles</h2>
+                <!-- Embed this feed button -->
+                <div class="flex justify-center mb-4">
+                    <button id="embedCurrentBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition mr-2">
+                        Embed This Feed
+                    </button>
+                    <span id="embedNotif" class="hidden px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-semibold shadow self-center"></span>
                 </div>
-                <div id="feed-list" class="flex-1 overflow-y-auto">
-                    <div id="loader" class="p-4 text-center text-slate-500 hidden">Loading feed...</div>
-                    <div id="error-message" class="p-4 text-center text-red-500 hidden"></div>
+                <!-- Responsive button container -->
+                <div class="flex flex-wrap gap-2 justify-center mb-4 overflow-x-auto" id="feedButtonsContainer">
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=http://rss.beehiiv.com/feeds/OhvCIep1j1.xml" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">MBD News</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://feeds.macrumors.com/MacRumors-All" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">MacRumors</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://www.theverge.com/rss/index.xml" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">The Verge</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://9to5mac.com/feed/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">9to5Mac</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://9to5google.com/feed/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">9to5Google</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://www.engadget.com/rss.xml" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Engadget</a>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="/index.html?feed=https://www.cnet.com/rss/all/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">CNET</a>
+                    </div>
+                    <!-- ...add more buttons here as needed... -->
                 </div>
-            </aside>
-
-            <section id="article-content-view" class="flex-1 h-full overflow-y-auto bg-white p-6 md:p-8 lg:p-10">
-                <div id="article-placeholder" class="text-center text-slate-400 h-full flex flex-col justify-center items-center">
-                    <svg class="w-16 h-16 mb-4 text-slate-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V6.375c0-.621.504-1.125 1.125-1.125H9.75" />
-                    </svg>
-                    <h3 class="text-xl font-medium">Select an article to read</h3>
-                    <p class="mt-1 text-sm">Use the buttons above to select a feed.</p>
-                </div>
-                <article id="article-content" class="prose lg:prose-xl max-w-none hidden">
-                    </article>
-            </section>
-        </main>
-    </div>
-
-    <!-- Add Feed Modal -->
-    <div id="add-feed-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2 class="text-xl font-bold mb-4">Add New RSS Feed</h2>
-            <input type="text" id="new-feed-name" placeholder="Feed Name (e.g., My Blog)" class="w-full px-3 py-2 border border-slate-300 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <input type="url" id="new-feed-url" placeholder="RSS Feed URL (e.g., https://example.com/feed.xml)" class="w-full px-3 py-2 border border-slate-300 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <div class="flex justify-end gap-2">
-                <button id="cancel-add-feed-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors">Cancel</button>
-                <button id="confirm-add-feed-btn" class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition-colors">Add Feed</button>
             </div>
-            <p id="add-feed-error" class="text-red-500 text-sm mt-2 hidden"></p>
+            <!-- Container for loading indicator and error messages -->
+            <div id="statusContainer" class="text-center my-4"></div>
+            <!-- Container for the main feed title -->
+            <div id="feedInfoContainer" class="mb-6"></div>
+            <!-- Container where the feed items will be displayed -->
+            <div id="feedContainer" class="space-y-6"></div>
+            <!-- "Load More" button container -->
+            <div id="loadMoreContainer" class="text-center mt-8">
+                <button id="loadMoreBtn" class="hidden bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-6 rounded-lg transition">
+                    Load More
+                </button>
+            </div>
+            <p>&copy 2024-25 Made by Danny, By Daniel Morrisey</p>
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirmation-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2 class="text-xl font-bold mb-4" id="confirmation-title">Confirm Action</h2>
-            <p class="mb-6" id="confirmation-message">Are you sure you want to proceed?</p>
-            <div class="flex justify-end gap-2">
-                <button id="cancel-confirm-btn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors">Cancel</button>
-                <button id="confirm-action-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">Confirm</button>
-            </div>
-        </div>
-    </div>
+    <script>
+        // --- DOM Element References ---
+        const fetchButton = document.getElementById('fetchFeed');
+        const rssUrlInput = document.getElementById('rssUrl');
+        const feedContainer = document.getElementById('feedContainer');
+        const statusContainer = document.getElementById('statusContainer');
+        const feedInfoContainer = document.getElementById('feedInfoContainer');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const mainContainer = document.getElementById('mainContainer');
+        const headerContent = document.getElementById('headerContent');
 
-    <script type="module">
-        // DOM Elements
-        const feedButtonsContainer = document.getElementById('feed-buttons');
-        const addFeedBtn = document.getElementById('add-feed-btn');
-        const viewSavedBtn = document.getElementById('view-saved-btn');
-        const viewLatestBtn = document.getElementById('view-latest-btn');
-        const feedList = document.getElementById('feed-list');
-        const feedTitle = document.getElementById('feed-title');
-        const articleContentView = document.getElementById('article-content-view');
-        const articlePlaceholder = document.getElementById('article-placeholder');
-        const articleContent = document.getElementById('article-content');
-        const loader = document.getElementById('loader');
-        const errorMessage = document.getElementById('error-message');
-        const searchInput = document.getElementById('search-input');
+        // --- State Management ---
+        const LAST_URL_KEY = 'lastRssUrl';
+        const ITEMS_PER_PAGE = 10; // Set a default value for items per page
+        let allFeedItems = [];
+        let itemsDisplayed = 0;
+        let currentLayout = 'card'; // Default layout
 
-        // Modals
-        const addFeedModal = document.getElementById('add-feed-modal');
-        const newFeedNameInput = document.getElementById('new-feed-name');
-        const newFeedUrlInput = document.getElementById('new-feed-url');
-        const cancelAddFeedBtn = document.getElementById('cancel-add-feed-btn');
-        const confirmAddFeedBtn = document.getElementById('confirm-add-feed-btn');
-        const addFeedError = document.getElementById('add-feed-error');
-
-        const confirmationModal = document.getElementById('confirmation-modal');
-        const confirmationTitle = document.getElementById('confirmation-title');
-        const confirmationMessage = document.getElementById('confirmation-message');
-        const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
-        const confirmActionBtn = document.getElementById('confirm-action-btn');
-
-        // --- State and Data ---
-        let articles = []; // Holds the currently displayed list of articles
-        let allUserFeeds = []; // Stores feeds from localStorage
-        let currentArticles = []; // Stores articles for the current view (feed, latest, saved) before filtering
-        let activeFeedUrl = null; // To keep track of the currently active feed for UI updates
-
-        // Default feeds (will be used if no user feeds are found in localStorage)
-        const defaultFeeds = [
-            { name: 'MacRumors', url: 'https://feeds.macrumors.com/MacRumors-All' },
-            { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml' },
-            { name: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
-            { name: 'Engadget', url: 'https://www.engadget.com/rss.xml' },
-            { name: 'Android Police', url: 'https://www.androidpolice.com/feed/' },
-            { name: '9to5Mac', url: 'https://9to5mac.com/feed/' },
-            { name: '9to5Google', url: 'https://9to5google.com/feed/' },
-            { name: "Tom's Hardware", url: 'https://www.tomshardware.com/feeds/all' },
-            { name: 'Digital Trends', url: 'https://www.digitaltrends.com/feed/' }
-        ];
-
-        // --- Local Storage Functions ---
-
-        /**
-         * Retrieves user feeds from localStorage.
-         * @returns {Array} An array of user feed objects.
-         */
-        const getUserFeeds = () => {
-            try {
-                return JSON.parse(localStorage.getItem('userRssFeeds')) || [];
-            } catch (e) {
-                console.error("Error parsing user feeds from localStorage:", e);
-                return [];
-            }
-        };
-
-        /**
-         * Saves user feeds to localStorage.
-         * @param {Array} feedsArray - The array of feed objects to save.
-         */
-        const saveUserFeeds = (feedsArray) => {
-            localStorage.setItem('userRssFeeds', JSON.stringify(feedsArray));
-        };
-
-        /**
-         * Populates default feeds into localStorage if no user feeds exist.
-         */
-        const populateDefaultFeeds = () => {
-            let feeds = getUserFeeds();
-            if (feeds.length === 0) {
-                saveUserFeeds(defaultFeeds);
-                allUserFeeds = defaultFeeds; // Update in-memory state
-                console.log("Populated default feeds to localStorage.");
-            } else {
-                allUserFeeds = feeds; // Load existing feeds into in-memory state
-            }
-            renderFeedButtons(); // Render buttons based on loaded feeds
-        };
-
-        /**
-         * Retrieves saved articles from localStorage.
-         * @returns {Array} An array of saved article objects.
-         */
-        const getSavedArticles = () => {
-            try {
-                return JSON.parse(localStorage.getItem('savedRssArticles')) || [];
-            } catch (e) {
-                console.error("Error parsing saved articles from localStorage:", e);
-                return [];
-            }
-        };
-
-        /**
-         * Saves an article to localStorage.
-         * @param {object} articleToSave - The article object to save.
-         */
-        const saveArticleToLocalStorage = (articleToSave) => {
-            const savedArticles = getSavedArticles();
-            // Avoid duplicates based on link
-            if (!savedArticles.some(saved => saved.link === articleToSave.link)) {
-                savedArticles.push(articleToSave);
-                localStorage.setItem('savedRssArticles', JSON.stringify(savedArticles));
-                console.log("Article saved to localStorage:", articleToSave.title);
-            } else {
-                console.log("Article already saved:", articleToSave.title);
-            }
-        };
-
-        // --- Feed Management Functions ---
-
-        /**
-         * Fetches and parses an RSS feed from a given URL, with timeout and better error handling.
-         * @param {string} rssUrl - The URL of the RSS feed to fetch.
-         * @param {number} limit - The number of articles to fetch.
-         * @param {string} feedName - The name of the feed, used for identification.
-         * @returns {Promise<Array|Object>} A promise that resolves to an array of article objects or an error object.
-         */
-        const fetchAndParseRss = async (rssUrl, limit = 7, feedName = 'RSS Feed') => {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-            try {
-                const response = await fetch(proxyUrl, { signal: controller.signal });
-                clearTimeout(timeout);
-                if (!response.ok) {
-                    let errorText = `Network error (${response.status})`;
-                    if (response.status === 404) errorText = 'Feed not found (404). Check URL.';
-                    else if (response.status === 500) errorText = 'Proxy server error (500). Try again later.';
-                    throw new Error(errorText);
-                }
-                const data = await response.json();
-                const xmlString = data.contents;
-
-                if (!xmlString) {
-                    throw new Error('No content received from proxy. Feed might be empty or invalid.');
-                }
-
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-
-                if (xmlDoc.querySelector("parsererror")) {
-                    throw new Error('Invalid RSS format. Could not parse XML.');
-                }
-
-                const items = xmlDoc.querySelectorAll("item");
-                return Array.from(items).slice(0, limit).map(item => ({
-                    title: item.querySelector("title")?.textContent || 'No Title',
-                    link: item.querySelector("link")?.textContent || '#',
-                    pubDate: item.querySelector("pubDate")?.textContent ? new Date(item.querySelector("pubDate").textContent) : new Date(0),
-                    pubDateFormatted: item.querySelector("pubDate")?.textContent ? new Date(item.querySelector("pubDate").textContent).toLocaleDateString() : 'No Date',
-                    description: item.querySelector("description")?.textContent || '',
-                    content: item.querySelector("content\\:encoded, description")?.textContent || '', // Prefer content:encoded
-                    source: feedName
-                }));
-            } catch (error) {
-                clearTimeout(timeout);
-                let msg = error.name === 'AbortError'
-                    ? `Timeout loading ${feedName}. It might be too slow or unresponsive.`
-                    : `Error loading ${feedName}: ${error.message}`;
-                console.error(msg);
-                return { error: msg, articles: [] };
-            }
-        };
-
-        /**
-         * Main function to handle fetching and displaying a single feed.
-         * @param {string} rssUrl - The URL of the RSS feed to fetch.
-         * @param {string} feedName - The name of the feed.
-         */
-        const loadFeed = async (rssUrl, feedName) => {
-            showLoading(true, `Loading ${feedName}...`);
-            errorMessage.classList.add('hidden');
-            feedList.innerHTML = '';
-            feedTitle.textContent = 'Loading...';
-            articles = [];
-            currentArticles = [];
-            resetArticleView();
-            searchInput.value = ''; // Clear search input
-
-            // De-select any active feed button
-            document.querySelectorAll('.feed-btn.active-feed').forEach(btn => btn.classList.remove('active-feed'));
-            // Set the active feed URL and save to localStorage
-            activeFeedUrl = rssUrl;
-            localStorage.setItem('activeRssFeedUrl', rssUrl);
-            localStorage.setItem('activeRssFeedName', feedName); // Also save the name for display
-            const activeBtn = document.querySelector(`.feed-btn[data-url="${rssUrl}"]`);
-            if (activeBtn) {
-                activeBtn.classList.add('active-feed');
-            }
-
-            const result = await fetchAndParseRss(rssUrl, 7, feedName);
-            if (result.error) {
-                showError(result.error);
-                feedTitle.textContent = 'Feed Articles';
-            } else {
-                articles = result;
-                currentArticles = [...articles]; // Store original for filtering
-                if (articles.length === 0) {
-                    showError('No articles found in this feed.');
-                    feedTitle.textContent = 'Feed Articles';
-                } else {
-                    feedTitle.textContent = feedName;
-                    renderArticleList(articles);
-                }
-            }
-            showLoading(false);
-        };
-
-        /**
-         * Fetches and combines the latest articles from all feeds, skipping failed feeds.
-         */
-        const fetchAllAndCombineFeeds = async () => {
-            showLoading(true, 'Loading Latest 20...');
-            errorMessage.classList.add('hidden');
-            feedList.innerHTML = '';
-            feedTitle.textContent = 'Loading Latest 20...';
-            articles = [];
-            currentArticles = [];
-            resetArticleView();
-            searchInput.value = ''; // Clear search input
-
-            document.querySelectorAll('.feed-btn.active-feed').forEach(btn => btn.classList.remove('active-feed'));
-            activeFeedUrl = null; // No specific feed active
-            localStorage.removeItem('activeRssFeedUrl'); // Clear active feed from localStorage
-            localStorage.removeItem('activeRssFeedName');
-
-            const feedsToFetch = allUserFeeds.length > 0 ? allUserFeeds : defaultFeeds;
-            const fetchPromises = feedsToFetch.map(feed => fetchAndParseRss(feed.url, 10, feed.name));
-
-            try {
-                const results = await Promise.all(fetchPromises);
-                let allArticles = [];
-                let failedFeeds = [];
-
-                results.forEach(result => {
-                    if (Array.isArray(result)) {
-                        allArticles = allArticles.concat(result);
-                    } else if (result.error) {
-                        failedFeeds.push(result.error);
-                    }
-                });
-
-                if (allArticles.length === 0) {
-                    showError('Could not fetch articles from any feed. Please check your internet connection or feed URLs.');
-                    feedTitle.textContent = 'Latest 20';
-                    return;
-                }
-
-                allArticles.sort((a, b) => b.pubDate - a.pubDate);
-                articles = allArticles.slice(0, 20);
-                currentArticles = [...articles]; // Store original for filtering
-                feedTitle.textContent = 'Latest 20 Articles';
-                renderArticleList(articles);
-
-                if (failedFeeds.length > 0) {
-                    errorMessage.innerHTML = `Some feeds failed to load:<br>${failedFeeds.join('<br>')}`;
-                    errorMessage.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Error fetching all feeds:", error);
-                showError('An unexpected error occurred while fetching the latest articles.');
-            } finally {
-                showLoading(false);
-            }
-        };
-
-        /**
-         * Renders a list of articles in the left sidebar.
-         * @param {Array} articleArray - The array of article objects to render.
-         */
-        const renderArticleList = (articleArray) => {
-            feedList.innerHTML = ''; // Clear previous list
-            if (articleArray.length === 0) {
-                feedList.innerHTML = '<p class="p-4 text-slate-500 text-center">No articles to display.</p>';
-                return;
-            }
-            articleArray.forEach((article, index) => {
-                const articleElement = document.createElement('div');
-                articleElement.className = 'article-item cursor-pointer p-4 border-b border-slate-200 hover:bg-slate-200 transition-colors duration-150';
-                articleElement.dataset.index = index;
-                articleElement.innerHTML = `
-                    <h3 class="font-semibold text-slate-800 mb-1">${article.title}</h3>
-                    <p class="text-sm text-slate-500">${article.pubDateFormatted || 'No Date'} &middot; ${article.source}</p>
-                `;
-                articleElement.addEventListener('click', () => displayArticle(index));
-                feedList.appendChild(articleElement);
-            });
-        };
-
-        /**
-         * Displays the content of a selected article.
-         * @param {number} index - The index of the article in the global 'articles' array.
-         */
-        const displayArticle = (index) => {
-            const article = articles[index];
-            if (!article) return;
-
-            articlePlaceholder.classList.add('hidden');
-            articleContent.classList.remove('hidden');
-
-            const savedArticles = getSavedArticles();
-            const isSaved = savedArticles.some(saved => saved.link === article.link);
-
-            articleContent.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <h1 class="text-2xl md:text-3xl font-bold !mb-0">${article.title}</h1>
-                    <button id="save-later-btn" class="ml-4 flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${isSaved ? 'bg-green-600 text-white' : 'bg-sky-600 hover:bg-sky-700 text-white'}" ${isSaved ? 'disabled' : ''}>
-                        ${isSaved ? '<i class="fas fa-check mr-1"></i> Saved' : '<i class="fas fa-bookmark mr-1"></i> Save for Later'}
-                    </button>
-                </div>
-                <div class="text-sm text-slate-500 mb-6 border-b pb-4">
-                    <span>${article.pubDateFormatted || 'No Date'}</span> &middot;
-                    <span>${article.source}</span> &middot;
-                    <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="text-sky-600 hover:underline">
-                        View Original
-                    </a>
-                </div>
-                <div>${article.content}</div>
-            `;
-
-            if (!isSaved) {
-                document.getElementById('save-later-btn').addEventListener('click', () => saveArticleToLocalStorage(article));
-            }
-
-            document.querySelectorAll('.article-item').forEach(item => item.classList.remove('selected'));
-            document.querySelector(`.article-item[data-index='${index}']`)?.classList.add('selected');
-
-            articleContentView.scrollTop = 0;
-        };
-
-        /**
-         * Displays the list of saved articles.
-         */
-        const viewSavedArticles = () => {
-            showLoading(true, 'Loading Saved Articles...');
-            errorMessage.classList.add('hidden');
-            searchInput.value = ''; // Clear search input
-            feedTitle.textContent = 'Saved Articles';
-            articles = getSavedArticles();
-            currentArticles = [...articles]; // Store original for filtering
-            renderArticleList(articles);
-            resetArticleView();
-            // De-select any active feed button
-            document.querySelectorAll('.feed-btn.active-feed').forEach(btn => btn.classList.remove('active-feed'));
-            activeFeedUrl = null; // No specific feed active
-            localStorage.removeItem('activeRssFeedUrl'); // Clear active feed from localStorage
-            localStorage.removeItem('activeRssFeedName');
-            showLoading(false);
-        };
-
-        /**
-         * Renders the feed selection buttons in the header.
-         */
-        const renderFeedButtons = () => {
-            feedButtonsContainer.innerHTML = ''; // Clear previous buttons
-            const feedsToRender = allUserFeeds.length > 0 ? allUserFeeds : defaultFeeds;
-
-            feedsToRender.forEach((feed) => {
-                const buttonWrapper = document.createElement('div');
-                buttonWrapper.className = 'flex items-center gap-1';
-
-                const button = document.createElement('button');
-                button.className = 'feed-btn px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-100 transition-colors';
-                button.textContent = feed.name;
-                button.dataset.url = feed.url; // Store URL for active state
-
-                button.addEventListener('click', (e) => {
-                    // No history.replaceState, just load the feed and update localStorage
-                    loadFeed(feed.url, feed.name);
-                });
-
-                // Set active state if this is the currently loaded feed
-                if (activeFeedUrl === feed.url) {
-                    button.classList.add('active-feed');
-                }
-
-                buttonWrapper.appendChild(button);
-
-                // Add delete button for user-added feeds (not default feeds)
-                // We'll consider any feed not in the initial `defaultFeeds` list as user-added.
-                const isDefaultFeed = defaultFeeds.some(df => df.url === feed.url);
-                if (!isDefaultFeed) {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.className = 'text-red-500 hover:text-red-700 p-1 rounded-full text-xs';
-                    deleteButton.innerHTML = '<i class="fas fa-times"></i>';
-                    deleteButton.title = `Remove ${feed.name}`;
-                    deleteButton.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent button click from triggering feed load
-                        showConfirmation("Remove Feed", `Are you sure you want to remove "${feed.name}"?`, () => deleteFeed(feed.url));
-                    });
-                    buttonWrapper.appendChild(deleteButton);
-                }
-                feedButtonsContainer.appendChild(buttonWrapper);
-            });
-        };
-
-        const addNewFeed = () => {
-            const name = newFeedNameInput.value.trim();
-            const url = newFeedUrlInput.value.trim();
-
-            if (!name || !url) {
-                addFeedError.textContent = "Both feed name and URL are required.";
-                addFeedError.classList.remove('hidden');
-                return;
-            }
-
-            // Basic URL validation
-            try {
-                new URL(url);
-            } catch (_) {
-                addFeedError.textContent = "Please enter a valid URL.";
-                addFeedError.classList.remove('hidden');
-                return;
-            }
-
-            // Check if feed already exists
-            if (allUserFeeds.some(f => f.url === url)) {
-                addFeedError.textContent = "This feed URL already exists.";
-                addFeedError.classList.remove('hidden');
-                return;
-            }
-
-            allUserFeeds.push({ name, url });
-            saveUserFeeds(allUserFeeds);
-            console.log("New feed added:", name, url);
-            hideModal(addFeedModal);
-            newFeedNameInput.value = '';
-            newFeedUrlInput.value = '';
-            addFeedError.classList.add('hidden');
-            renderFeedButtons(); // Re-render buttons
-            loadFeed(url, name); // Load the newly added feed
-        };
-
-        const deleteFeed = (feedUrlToDelete) => {
-            allUserFeeds = allUserFeeds.filter(feed => feed.url !== feedUrlToDelete);
-            saveUserFeeds(allUserFeeds);
-            console.log("Feed deleted:", feedUrlToDelete);
-            renderFeedButtons(); // Re-render buttons
-
-            // If the deleted feed was the active one, load the first available feed or latest
-            if (activeFeedUrl === feedUrlToDelete) {
-                if (allUserFeeds.length > 0) {
-                    loadFeed(allUserFeeds[0].url, allUserFeeds[0].name);
-                } else {
-                    fetchAllAndCombineFeeds(); // Fallback to latest if no custom feeds left
-                }
-            }
-        };
-
-        // --- Search and Filter Functions ---
-        const filterArticles = () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            if (!searchTerm) {
-                renderArticleList(currentArticles); // Show all articles if search is empty
-                return;
-            }
-
-            const filtered = currentArticles.filter(article =>
-                article.title.toLowerCase().includes(searchTerm) ||
-                article.content.toLowerCase().includes(searchTerm) ||
-                article.description.toLowerCase().includes(searchTerm)
-            );
-            renderArticleList(filtered);
-        };
-
-        // --- Utility Functions ---
-        const showLoading = (show, message = 'Loading...') => {
-            loader.textContent = message;
-            if (show) {
-                loader.classList.remove('hidden');
-            } else {
-                loader.classList.add('hidden');
-            }
-        };
-
-        const showError = (message) => {
-            feedTitle.textContent = 'Error';
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
-            showLoading(false);
-            feedList.innerHTML = '';
-        };
-
-        const resetArticleView = () => {
-            articlePlaceholder.classList.remove('hidden');
-            articleContent.classList.add('hidden');
-            // Remove selected class from all articles
-            document.querySelectorAll('.article-item').forEach(item => item.classList.remove('selected'));
-        };
-
-        /**
-         * Utility to get query parameters from URL.
-         * This function is kept for potential future use or if a user explicitly wants URL params.
-         * However, it's not used for active feed persistence anymore due to SecurityError.
-         * @param {string} name
-         * @returns {string|null}
-         */
-        function getQueryParam(name) {
+        // --- Page Load Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
-        }
+            const feedUrlFromParam = urlParams.get('feed');
+            const layoutFromParam = urlParams.get('layout');
 
-        // --- Modal Functions ---
-        const showModal = (title, message, onConfirm = null) => {
-            confirmationTitle.textContent = title;
-            confirmationMessage.textContent = message;
-            confirmationModal.classList.remove('hidden');
-
-            // Clear previous listeners
-            confirmActionBtn.onclick = null;
-            cancelConfirmBtn.onclick = null;
-
-            if (onConfirm) {
-                confirmActionBtn.classList.remove('hidden');
-                confirmActionBtn.onclick = () => {
-                    hideModal(confirmationModal);
-                    onConfirm();
-                };
-            } else {
-                confirmActionBtn.classList.add('hidden'); // Hide confirm button if no action
+            // Set layout from URL param, or use default
+            if (['card', 'list', 'image-top'].includes(layoutFromParam)) {
+                currentLayout = layoutFromParam;
             }
-            cancelConfirmBtn.onclick = () => hideModal(confirmationModal);
-        };
+            
+            // If a layout is specified, we can assume it's an embed and hide some UI
+            if (layoutFromParam) {
+                headerContent.classList.add('hidden');
+                mainContainer.classList.remove('p-6', 'sm:p-8', 'shadow-lg');
+                mainContainer.classList.add('p-0');
+            }
 
-        const hideModal = (modalElement) => {
-            modalElement.classList.add('hidden');
-        };
-
-        // --- Initial Setup and Event Listeners ---
-        window.addEventListener('load', () => {
-            populateDefaultFeeds(); // Load feeds from localStorage or populate defaults
-
-            addFeedBtn.addEventListener('click', () => {
-                addFeedError.classList.add('hidden'); // Hide previous errors
-                addFeedModal.classList.remove('hidden');
-                newFeedNameInput.focus();
-            });
-            cancelAddFeedBtn.addEventListener('click', () => hideModal(addFeedModal));
-            confirmAddFeedBtn.addEventListener('click', addNewFeed);
-
-            viewSavedBtn.addEventListener('click', viewSavedArticles);
-            viewLatestBtn.addEventListener('click', fetchAllAndCombineFeeds);
-            searchInput.addEventListener('input', filterArticles);
-
-            // Attempt to load the last active feed from localStorage first
-            const lastActiveFeedUrl = localStorage.getItem('activeRssFeedUrl');
-            const lastActiveFeedName = localStorage.getItem('activeRssFeedName');
-
-            if (lastActiveFeedUrl && lastActiveFeedName) {
-                loadFeed(lastActiveFeedUrl, lastActiveFeedName);
-            } else if (allUserFeeds.length > 0) {
-                // Default: load first feed from user feeds if no last active feed
-                loadFeed(allUserFeeds[0].url, allUserFeeds[0].name);
+            if (feedUrlFromParam) {
+                // Validate URL from parameter
+                try {
+                    new URL(feedUrlFromParam); // Throws error if not a valid URL
+                    rssUrlInput.value = decodeURIComponent(feedUrlFromParam);
+                    statusContainer.innerHTML = '<p class="text-indigo-500">Loading feed from URL parameter...</p>';
+                    getRssFeed();
+                } catch (e) {
+                    displayError("Invalid RSS feed URL provided in the URL parameter.");
+                }
             } else {
-                // If no feeds at all (shouldn't happen if defaultFeeds are populated), show latest
-                fetchAllAndCombineFeeds();
+                const lastUrl = localStorage.getItem(LAST_URL_KEY);
+                if (lastUrl) {
+                    rssUrlInput.value = lastUrl;
+                }
             }
         });
+
+        // --- Event Listeners ---
+        fetchButton.addEventListener('click', getRssFeed);
+        loadMoreBtn.addEventListener('click', appendItems);
+        rssUrlInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') getRssFeed();
+        });
+
+        document.getElementById('embedCurrentBtn').addEventListener('click', function() {
+            const rssUrl = document.getElementById('rssUrl').value.trim();
+            if (!rssUrl) return;
+            const embedCode = `<iframe src="/embed.html?feed=${encodeURIComponent(rssUrl)}" style="width:100%;min-width:320px;height:600px;border:none;"></iframe>`;
+            navigator.clipboard.writeText(embedCode).then(() => {
+                const notif = document.getElementById('embedNotif');
+                notif.textContent = "Embed code copied!";
+                notif.classList.remove('hidden');
+                setTimeout(() => notif.classList.add('hidden'), 1500);
+            });
+        });
+
+        /**
+         * Fetches and initiates the display of the RSS feed.
+         */
+        async function getRssFeed() {
+            const rssUrl = rssUrlInput.value.trim();
+            if (!rssUrl) {
+                displayError("Please enter an RSS feed URL.");
+                return;
+            }
+
+            // Reset state
+            feedContainer.innerHTML = '';
+            feedInfoContainer.innerHTML = '';
+            allFeedItems = [];
+            itemsDisplayed = 0;
+            loadMoreBtn.classList.add('hidden');
+            statusContainer.innerHTML = '<p class="text-indigo-500">Fetching and parsing feed...</p>';
+
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error(`Network response was not ok (status: ${response.status})`);
+                
+                const data = await response.json();
+                if (data.status !== 'ok') throw new Error(data.message || 'The API could not process the feed.');
+                
+                localStorage.setItem(LAST_URL_KEY, rssUrl);
+                statusContainer.innerHTML = ''; 
+                
+                displayFeedInfo(data.feed);
+                allFeedItems = data.items;
+                appendItems();
+
+            } catch (error) {
+                console.error("Fetching error:", error);
+                displayError(`Failed to fetch feed. Check the URL or try another. <br><small>${error.message}</small>`);
+            }
+        }
+
+        /**
+         * Appends the next batch of items to the feed container, using the selected layout.
+         */
+        function appendItems() {
+            const itemsToAppend = allFeedItems.slice(itemsDisplayed, itemsDisplayed + ITEMS_PER_PAGE);
+
+            if (!itemsToAppend.length && itemsDisplayed === 0) {
+                 displayError("This feed appears to be empty.");
+                 return;
+            }
+
+            itemsToAppend.forEach(item => {
+                const article = document.createElement('article');
+                const imageUrl = extractImageUrl(item);
+                const title = item.title || 'No Title';
+                const link = item.link || '#';
+                const pubDate = item.pubDate ? new Date(item.pubDate).toLocaleString() : 'No Date';
+                const author = item.author || 'Unknown Author';
+
+                let articleHtml;
+
+                // --- Layout Switching ---
+                switch (currentLayout) {
+                    case 'list':
+                        article.className = 'feed-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-row items-center transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1';
+                        articleHtml = `
+                            <div class="w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
+                                <img src="${imageUrl}" alt="Thumbnail for article titled ${title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/200x200/E2E8F0/4A5568?text=N/A';">
+                            </div>
+                            <div class="p-4 flex-grow">
+                                <h3 class="text-lg font-bold">
+                                    <a href="${link}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">${title}</a>
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${author} &bull; ${pubDate}</p>
+                            </div>
+                        `;
+                        break;
+                    case 'image-top':
+                         article.className = 'feed-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1';
+                         articleHtml = `
+                            <div class="w-full h-48 flex-shrink-0">
+                                <img src="${imageUrl}" alt="Cover image for ${title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/E2E8F0/4A5568?text=Image+Error';">
+                            </div>
+                            <div class="p-5 flex flex-col justify-between flex-grow">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">${author} &bull; ${pubDate}</p>
+                                    <h3 class="text-xl font-bold mb-3">
+                                        <a href="${link}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">${title}</a>
+                                    </h3>
+                                </div>
+                                <a href="https://raindrop.madebydanny.uk/?add=1&link=${link}&title=${title}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline self-start mt-2">Save for Later</a>
+                                <a href="${link}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline self-start mt-2">Read More &rarr;</a>
+                            </div>
+                         `;
+                         break;
+                    case 'card':
+                    default:
+                        article.className = 'feed-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1';
+                        articleHtml = `
+                            <div class="md:w-1/3 w-full h-48 md:h-auto flex-shrink-0">
+                                <img src="${imageUrl}" alt="Cover image for ${title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/E2E8F0/4A5568?text=Image+Error';">
+                            </div>
+                            <div class="p-5 flex flex-col justify-between flex-grow">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">${author} &bull; ${pubDate}</p>
+                                    <h3 class="text-xl font-bold mb-3">
+                                        <a href="${link}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">${title}</a>
+                                    </h3>
+                                </div>
+                                <a href="https://raindrop.madebydanny.uk/?add=1&link=${link}&title=${title}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline self-start mt-2">Save for Later</a>
+                                <a href="${link}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline self-start mt-2">Read More &rarr;</a>
+                            </div>
+                        `;
+                        break;
+                }
+
+                article.innerHTML = articleHtml;
+                feedContainer.appendChild(article);
+            });
+
+            itemsDisplayed += itemsToAppend.length;
+
+            if (itemsDisplayed < allFeedItems.length) {
+                loadMoreBtn.classList.remove('hidden');
+            } else {
+                loadMoreBtn.classList.add('hidden');
+            }
+        }
+        
+        function displayFeedInfo(feed) {
+             feedInfoContainer.innerHTML = `
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b-2 border-indigo-500 pb-2 mb-4">
+                    <a href="${feed.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">${feed.title}</a>
+                </h2>
+            `;
+        }
+
+        function extractImageUrl(item) {
+            if (item.thumbnail && typeof item.thumbnail === 'string' && item.thumbnail.length > 0) return item.thumbnail;
+            if (item.enclosure && item.enclosure.type && item.enclosure.type.startsWith('image')) return item.enclosure.link;
+            if (item.description) {
+                const match = item.description.match(/<img[^>]+src="([^">]+)"/);
+                if (match && match[1]) return match[1];
+            }
+            return `https://placehold.co/600x400/E2E8F0/4A5568?text=No+Image`;
+        }
+
+        function displayError(message) {
+            statusContainer.innerHTML = `<div class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-200 p-4 rounded-md" role="alert"><p class="font-bold">Error</p><p>${message}</p></div>`;
+        }
+
+        // --- Embed Button Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add embed button event listeners
+            document.querySelectorAll('.embed-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const feedUrl = btn.getAttribute('data-feed');
+                    const embedCode = `<iframe src="${window.location.origin}/index.html?feed=${encodeURIComponent(feedUrl)}&layout=card" style="width:100%;min-width:320px;height:600px;border:none;"></iframe>`;
+                    navigator.clipboard.writeText(embedCode).then(() => {
+                        showEmbedNotification(btn, "Embed code copied!");
+                    });
+                });
+            });
+        });
+
+        // Show a temporary notification near the button
+        function showEmbedNotification(btn, message) {
+            const notif = document.createElement('span');
+            notif.textContent = message;
+            notif.className = "ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-semibold shadow";
+            btn.parentNode.appendChild(notif);
+            setTimeout(() => notif.remove(), 1500);
+        }
 
     </script>
 </body>
