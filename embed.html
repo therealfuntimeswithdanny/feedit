@@ -59,6 +59,7 @@
                 displayError("No feed URL provided.");
                 return;
             }
+            // Always fetch fresh from RSS server on reload
             getRssFeed(feedUrl);
         });
 
